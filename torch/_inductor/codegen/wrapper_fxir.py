@@ -14,7 +14,7 @@ from torch._higher_order_ops.triton_kernel_wrap import (
     tracing_triton_hopifier_singleton,
     triton_kernel_wrapper_mutation,
 )
-from torch._inductor.codecache import PyCodeCache
+from torch._inductor.codecache import LambdaFuture, PyCodeCache
 from torch._inductor.runtime.triton_heuristics import CachingAutotuner
 from torch._inductor.select_algorithm import extern_kernels  # noqa: F401
 from torch._inductor.utils import sympy_product, sympy_subs
@@ -167,6 +167,9 @@ class FxConverter:
         module_code = "\n".join([self.prologue, code])
         mod = PyCodeCache.load(module_code)
         kernel = getattr(mod, kernel_name)
+
+        if isinstance(kernel, LambdaFuture):
+            kernel = kernel.result()
 
         if not isinstance(kernel, CachingAutotuner):
             raise NotImplementedError(
